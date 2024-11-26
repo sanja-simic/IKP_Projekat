@@ -1,20 +1,71 @@
 // Client.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+// TCP veza klijenta i servera
+
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+
 #include <iostream>
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "conio.h"
+
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib") 
+
+// serverski port 5059
+#define SERVER_IP_ADDRESS "127.0.0.1"
+#define SERVER_PORT 5059
+#define BUFFER_SIZE 256
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		printf("WSAStartup failed with error: %d\n", WSAGetLastError());
+		return 1;
+	}
+
+	int iResult;
+
+	SOCKET connectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	char dataBuffer[BUFFER_SIZE];
+
+	sockaddr_in serverAddress;
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);
+	serverAddress.sin_port = htons(SERVER_PORT);
+
+	iResult = connect(connectSocket, (SOCKADDR*)&serverAddress,
+		sizeof(serverAddress));
+	if (iResult == SOCKET_ERROR)
+	{
+		printf("Unable to connect to server.\n");
+		closesocket(connectSocket);
+		WSACleanup();
+		return -4;
+	}
+
+	do {
+		printf("Send message to server: ");
+		gets_s(dataBuffer, BUFFER_SIZE);
+		iResult = send(connectSocket, dataBuffer, (int)strlen(dataBuffer), 0);
+		if (iResult == SOCKET_ERROR) {
+			printf("Message is successfull sent!\n");
+			return -5;
+		}
+
+	} while (strcmp(dataBuffer, "End") != true);
+
+	shutdown(connectSocket, SD_BOTH);
+	closesocket(connectSocket);
+	WSACleanup();
+	return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
